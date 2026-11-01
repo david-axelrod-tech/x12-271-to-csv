@@ -120,7 +120,7 @@ of raw EDI with a CSV that could be joined to the census in minutes.
 | Situation | Behaviour |
 |---|---|
 | ISA header missing or shorter than 106 characters | Falls back to `*` and `~`; the rest of the file is still parsed. |
-| Non-standard separators (`|`, `^`, line feeds) | Read from the ISA; covered by a unit test. |
+| Non-standard separators (`\|`, `^`, line feeds) | Read from the ISA; covered by a unit test. |
 | Segment shorter than the element being read | Column is left blank; the parser never raises on a short segment. |
 | Several `EB` or plan segments for one patient | De-duplicated in first-seen order and joined with `; `. |
 | Dependent (`HL*23`) under a subscriber | Gets its own row, with its own address and plan; nothing bleeds into the subscriber's row. |
