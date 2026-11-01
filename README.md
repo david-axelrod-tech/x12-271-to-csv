@@ -1,6 +1,6 @@
 # x12-271-to-csv
 
-[![CI](https://github.com/USERNAME/x12-271-to-csv/actions/workflows/ci.yml/badge.svg)](https://github.com/USERNAME/x12-271-to-csv/actions/workflows/ci.yml)
+[![CI](https://github.com/david-axelrod-tech/x12-271-to-csv/actions/workflows/ci.yml/badge.svg)](https://github.com/david-axelrod-tech/x12-271-to-csv/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.9%2B-blue)
 ![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
