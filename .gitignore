@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Never commit real payer files or their output. Only the synthetic sample lives here.
+*.x12
+*.edi
+*.271
+*.270
+*.dat
+*.csv
+!samples/sample_271.x12
+!samples/sample_271.csv
