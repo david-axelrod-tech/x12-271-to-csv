@@ -82,13 +82,30 @@ with open("response.x12") as fh:
 
 ## How it works
 
-1. Read the ISA header to learn the element separator (position 4) and segment
-   terminator (position 106).
-2. Split the file into segments and walk them in order, tracking the current `HL` level.
-3. Open a new patient record on every `HL` level `22` or `23`; close it when the file
-   steps back up to a payer (`20`) or information-source (`21`) level.
-4. Route each segment inside a patient loop to the matching column(s).
-5. Write the rows with `csv.DictWriter`.
+```mermaid
+flowchart LR
+    A["271 file"] --> B["detect_delimiters<br/>element sep = ISA pos 4<br/>segment term = ISA pos 106"]
+    B --> C["Split into segments"]
+    C --> D{"HL level?"}
+    D -->|"20 source / 21 receiver"| E["Close current row"]
+    D -->|"22 subscriber / 23 dependent"| F["Open new patient row"]
+    F --> G["Route segments<br/>NM1 IL / 03 -> name, member ID<br/>N3 / N4 -> address<br/>DMG -> DOB, gender<br/>EB -> status<br/>NM1 Y2 / P4 -> plan<br/>MSG -> messages, county, recert"]
+    G --> H["csv.DictWriter<br/>one row per patient,<br/>multi-values de-duplicated and joined"]
+    E --> H
+```
+
+### 271 loop coverage (005010X279A1)
+
+| Loop | HL level | Segments read | Goes to |
+|---|---|---|---|
+| 2000A information source (payer) | 20 | none | closes the open row |
+| 2000B information receiver (provider) | 21 | none | closes the open row |
+| 2000C subscriber | 22 | `TRN` ignored | opens a row |
+| 2100C subscriber name | | `NM1*IL`, `N3`, `N4`, `DMG` | name, member ID, address, DOB, gender |
+| 2110C eligibility or benefit | | `EB`, `MSG` | `Eligibility_Status`, `All_Messages`, `County_Code`, `Recert_Month` |
+| 2120C benefit related entity | | `NM1*Y2`, `NM1*P4`, other payer codes | `Insurance_Plans`, `Insurance_Plan_IDs` |
+| 2000D dependent | 23 | | opens its own row |
+| 2100D / 2110D / 2120D dependent detail | | `NM1*03`, `N3`, `N4`, `DMG`, `EB`, `MSG`, plan `NM1` | same columns as the subscriber |
 
 ## Background
 
@@ -97,6 +114,21 @@ a nightly batch 270/271 cycle covered tens of thousands of Medicaid members. Int
 A/R teams needed to see, at a glance, who was active, which managed-care plan they were
 enrolled in, and when their recertification was due. This script replaced manual reading
 of raw EDI with a CSV that could be joined to the census in minutes.
+
+## Edge cases
+
+| Situation | Behaviour |
+|---|---|
+| ISA header missing or shorter than 106 characters | Falls back to `*` and `~`; the rest of the file is still parsed. |
+| Non-standard separators (`|`, `^`, line feeds) | Read from the ISA; covered by a unit test. |
+| Segment shorter than the element being read | Column is left blank; the parser never raises on a short segment. |
+| Several `EB` or plan segments for one patient | De-duplicated in first-seen order and joined with `; `. |
+| Dependent (`HL*23`) under a subscriber | Gets its own row, with its own address and plan; nothing bleeds into the subscriber's row. |
+| New `HL*20` or `HL*21` mid-file (multi-payer or multi-provider batches) | Current row is closed; the next `HL*22` starts fresh. |
+| End of file inside a patient loop | Last row is flushed. |
+| Stray non-UTF-8 bytes | Read with `errors="ignore"`; the run does not abort. |
+| `DMG02` not 8 digits | Written as received instead of being misformatted. |
+| `MSG` text without the NY Medicaid patterns | Still kept verbatim in `All_Messages`. |
 
 ## Limitations
 
